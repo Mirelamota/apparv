@@ -51,8 +51,13 @@ if uploaded_file is not None:
                 st.error(f"⚠️ A coluna obrigatória '{col}' não foi encontrada no arquivo.")
                 st.stop()
 
-        # Converter data_venda para datetime
+        # Garantir que os tipos estejam corretos
         df['data_venda'] = pd.to_datetime(df['data_venda'], errors='coerce')
+        df['quantidade'] = pd.to_numeric(df['quantidade'], errors='coerce')
+        df['valor_total'] = pd.to_numeric(df['valor_total'], errors='coerce')
+
+        # Remover linhas com dados inválidos
+        df = df.dropna(subset=['data_venda', 'quantidade', 'valor_total'])
 
         # Filtro por categoria
         st.sidebar.header("🔍 Filtros")
@@ -99,11 +104,16 @@ if uploaded_file is not None:
                 st.pyplot(fig)
 
             # Sazonalidade de Vendas
-            vendas_por_dia = filtered_df.resample('D', on='data_venda')['valor_total'].sum()
-            st.write("### 📅 Sazonalidade de Vendas (por dia)")
-            fig, ax = plt.subplots(figsize=(10, 4))
-            vendas_por_dia.plot(kind='line', ax=ax, title="Vendas ao longo do tempo", ylabel="Valor Total (R$)", xlabel="Data")
-            st.pyplot(fig)
+            if not filtered_df.empty and 'data_venda' in filtered_df.columns:
+                vendas_por_dia = filtered_df.resample('D', on='data_venda')['valor_total'].sum()
+                if not vendas_por_dia.empty:
+                    st.write("### 📅 Sazonalidade de Vendas (por dia)")
+                    fig, ax = plt.subplots(figsize=(10, 4))
+                    vendas_por_dia.plot(kind='line', ax=ax, title="Vendas ao longo do tempo", ylabel="Valor Total (R$)", xlabel="Data")
+                    ax.grid(True)
+                    st.pyplot(fig)
+                else:
+                    st.warning("⚠️ Não há dados suficientes para mostrar a sazonalidade.")
 
             # Geração do relatório em Excel
             st.subheader("📦 Baixar Relatório")
@@ -113,7 +123,8 @@ if uploaded_file is not None:
                     top_produtos.to_excel(writer, sheet_name="Top Produtos")
                     if 'custo' in filtered_df.columns:
                         rentaveis.to_excel(writer, sheet_name="Produtos Rentáveis")
-                    vendas_por_dia.to_excel(writer, sheet_name="Sazonalidade")
+                    if not filtered_df.empty and 'data_venda' in filtered_df.columns:
+                        vendas_por_dia.to_excel(writer, sheet_name="Sazonalidade")
                 buffer.seek(0)
                 st.success("✅ Relatório pronto!")
                 st.download_button(

@@ -3,6 +3,9 @@ import pandas as pd
 import plotly.express as px
 import io
 
+# Primeiro comando do Streamlit: configuração da página
+st.set_page_config(page_title="Relatórios de Vendas", layout="wide")
+
 # Estilos CSS personalizados
 st.markdown("""
 <style>
@@ -28,9 +31,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Configuração da página
-st.set_page_config(page_title="Relatórios de Vendas", layout="wide")
+# Título e descrição
 st.title("📊 Automatizador de Relatórios de Vendas")
+st.markdown("Carregue seus dados de vendas e gere relatórios personalizados!")
 
 # Funções para gerar modelos CSV
 def gerar_modelo_preenchido():

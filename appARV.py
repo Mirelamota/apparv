@@ -157,23 +157,30 @@ if uploaded_file is not None:
                           title="Vendas ao longo do Tempo", labels={'x': 'Data', 'y': 'Valor Total (R$)'})
             st.plotly_chart(fig, use_container_width=True)
 
-        with tab_lucratividade:
+                with tab_lucratividade:
             if 'custo' in filtered_df.columns:
+                # Calcular lucro e margem de lucro
                 filtered_df['lucro'] = filtered_df['valor_total'] - filtered_df['custo']
                 filtered_df['margem_lucro'] = (filtered_df['lucro'] / filtered_df['valor_total']) * 100
-                rentaveis = filtered_df.groupby('produto')['lucro'].sum().sort_values(ascending=False).head(10)
-                margens = filtered_df.groupby('produto')['margem_lucro'].mean().loc[rentaveis.index]
+                margens = filtered_df.groupby('produto', as_index=False)['margem_lucro'].mean()
+                margens = margens.sort_values(by='margem_lucro', ascending=False)
 
-                fig = px.bar(rentaveis, x=rentaveis.values, y=rentaveis.index, orientation='h',
-                             title="Top 10 Produtos Mais Rentáveis",
-                             labels={'x': 'Lucro Total (R$)', 'y': 'Produto'},
-                             hover_data=[margens.round(2)])
-                fig.update_traces(hovertemplate="<b>%{y}</b><br>Lucro: R$ %{x}<br>Margem: %{customdata[0]:.2f}%")
-                fig.update_layout(yaxis={'categoryorder': 'total ascending'})
-
+                # Gráfico de margem de lucro
+                fig = px.bar(margens.head(10), x='margem_lucro', y='produto', orientation='h',
+                             title="📊 Margem de Lucro por Produto",
+                             labels={'margem_lucro': 'Margem de Lucro (%)', 'produto': 'Produto'},
+                             range_x=[0, 100])
                 st.plotly_chart(fig, use_container_width=True)
+
+                # Tabela com detalhes
+                tabela_margem = margens.copy()
+                tabela_margem['margem_lucro'] = tabela_margem['margem_lucro'].round(2)
+                tabela_margem.rename(columns={'margem_lucro': 'Margem de Lucro (%)'}, inplace=True)
+                st.write("📌 **Detalhe da Margem de Lucro por Produto:**")
+                st.dataframe(tabela_margem, use_container_width=True)
+
             else:
-                st.info("ℹ️ Para ver a lucratividade, inclua a coluna 'custo' no seu arquivo.")
+                st.info("ℹ️ Para ver a margem de lucro, inclua a coluna 'custo' no seu arquivo.")
 
         with tab_crescimento:
             if 'custo' in filtered_df.columns:

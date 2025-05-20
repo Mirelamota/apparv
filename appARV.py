@@ -60,12 +60,21 @@ def tela_inicial():
 # Funções para gerar modelos CSV
 def gerar_modelo_preenchido():
     dados_exemplo = {
-        'data_venda': ['2024-01-05', '2024-01-06', '2024-01-07', '2024-01-08', '2024-01-09', '2024-01-10'],
-        'produto': ['Caderno', 'Caneta Azul', 'Mochila Escolar', 'Lápis', 'Caderno de Desenho', 'Caneta Vermelha'],
-        'quantidade': [10, 50, 5, 30, 8, 40],
-        'valor_total': [15.00, 2.00, 120.00, 1.50, 25.00, 2.00],
-        'categoria': ['Papelaria', 'Acessórios', 'Papelaria', 'Acessórios', 'Papelaria', 'Acessórios'],
-        'custo': [8.00, 1.00, 80.00, 0.70, 15.00, 1.00]
+        'data_venda': [
+            '2024-01-05', '2024-01-06', '2024-01-07', '2024-01-08', '2024-01-09', '2024-01-10',
+            '2024-02-01', '2024-02-02', '2024-02-03', '2024-02-04', '2024-02-05', '2024-02-06'
+        ],
+        'produto': [
+            'Caderno', 'Caneta Azul', 'Mochila Escolar', 'Lápis', 'Caderno de Desenho', 'Caneta Vermelha',
+            'Caneta Preta', 'Post-it', 'Tesoura', 'Caneta Azul', 'Caderno Universitário', 'Caneta Verde'
+        ],
+        'quantidade': [10, 50, 5, 30, 8, 40, 60, 20, 10, 70, 15, 35],
+        'valor_total': [15.00, 2.00, 120.00, 1.50, 25.00, 2.00,
+                        2.00, 10.00, 8.00, 2.00, 20.00, 2.00],
+        'categoria': ['Papelaria', 'Acessórios', 'Papelaria', 'Acessórios', 'Papelaria', 'Acessórios',
+                      'Acessórios', 'Papelaria', 'Papelaria', 'Acessórios', 'Papelaria', 'Acessórios'],
+        'custo': [8.00, 1.00, 80.00, 0.70, 15.00, 1.00,
+                  1.00, 6.00, 5.00, 1.00, 12.00, 1.00]
     }
     return pd.DataFrame(dados_exemplo).to_csv(index=False, sep=';', decimal=',')
 

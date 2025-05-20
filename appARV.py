@@ -28,12 +28,34 @@ st.markdown("""
     .kpi-faturamento { background-color: #1f77b4; }
     .kpi-vendas { background-color: #2ca02c; }
     .kpi-ticket { background-color: #ff7f0e; }
+
+    .intro-box {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-align: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Título e descrição
-st.title("📊 Automatizador de Relatórios de Vendas")
-st.markdown("Carregue seus dados de vendas e gere relatórios personalizados!")
+# Tela Inicial com Logo e Descrição
+def tela_inicial():
+    st.markdown("""
+    <div class="intro-box">
+        <h1>📊 Automatizador de Relatórios de Vendas</h1>
+        <p>Bem-vindo ao seu painel de análise de vendas!</p>
+        <p>Carregue seus dados de vendas e gere relatórios completos em minutos.</p>
+        <ul style="text-align:left;">
+            <li>🔍 Visualize os produtos mais vendidos</li>
+            <li>📅 Veja a sazonalidade das vendas</li>
+            <li>💰 Analise lucratividade e margem de lucro</li>
+            <li>📈 Acompanhe o crescimento mensal</li>
+        </ul>
+        <p>Use os modelos na barra lateral para começar!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
 # Funções para gerar modelos CSV
 def gerar_modelo_preenchido():
@@ -49,6 +71,9 @@ def gerar_modelo_preenchido():
 
 def gerar_modelo_vazio():
     return pd.DataFrame(columns=['data_venda', 'produto', 'quantidade', 'valor_total', 'categoria', 'custo (opcional)']).to_csv(index=False, sep=';', decimal=',')
+
+# Página principal
+tela_inicial()
 
 # Barra lateral - Modelos
 st.sidebar.header("📥 Modelos de Arquivo CSV")
@@ -96,8 +121,8 @@ if uploaded_file is not None:
         filtered_df = filtered_df[filtered_df['categoria'].isin(categoria_selecionada)]
 
         # Abas principais
-        tab_resumo, tab_produtos, tab_sazonalidade, tab_lucratividade = st.tabs([
-            "📊 Resumo", "📦 Produtos", "📅 Sazonalidade", "💰 Lucratividade"
+        tab_resumo, tab_produtos, tab_sazonalidade, tab_lucratividade, tab_crescimento = st.tabs([
+            "📊 Resumo", "📦 Produtos", "📅 Sazonalidade", "💰 Lucratividade", "📈 Crescimento"
         ])
 
         with tab_resumo:
@@ -126,14 +151,35 @@ if uploaded_file is not None:
         with tab_lucratividade:
             if 'custo' in filtered_df.columns:
                 filtered_df['lucro'] = filtered_df['valor_total'] - filtered_df['custo']
-                filtered_df['rentabilidade'] = filtered_df['lucro'] * filtered_df['quantidade']
-                rentaveis = filtered_df.groupby('produto')['rentabilidade'].sum().sort_values(ascending=False).head(10)
+                filtered_df['margem_lucro'] = (filtered_df['lucro'] / filtered_df['valor_total']) * 100
+                rentaveis = filtered_df.groupby('produto')['lucro'].sum().sort_values(ascending=False).head(10)
+                margens = filtered_df.groupby('produto')['margem_lucro'].mean().loc[rentaveis.index]
+
                 fig = px.bar(rentaveis, x=rentaveis.values, y=rentaveis.index, orientation='h',
                              title="Top 10 Produtos Mais Rentáveis",
-                             labels={'x': 'Lucro Total (R$)', 'y': 'Produto'})
+                             labels={'x': 'Lucro Total (R$)', 'y': 'Produto'},
+                             hover_data=[margens.round(2)])
+                fig.update_traces(hovertemplate="<b>%{y}</b><br>Lucro: R$ %{x}<br>Margem: %{customdata[0]:.2f}%")
+                fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("ℹ️ Para ver a lucratividade, inclua a coluna 'custo' no seu arquivo.")
+
+        with tab_crescimento:
+            if 'custo' in filtered_df.columns:
+                df_mensal = filtered_df.resample('M', on='data_venda').agg(
+                    faturamento=('valor_total', 'sum'),
+                    lucro=('lucro', 'sum')
+                ).reset_index()
+                df_mensal['mês'] = df_mensal['data_venda'].dt.strftime('%b %Y')
+
+                fig = px.line(df_mensal, x='mês', y=['faturamento', 'lucro'],
+                              title="Faturamento e Lucro Mensal",
+                              labels={'value': 'Valor (R$)', 'variable': 'Tipo'})
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("ℹ️ Adicione a coluna 'custo' para visualizar o crescimento mensal.")
 
         # Exportação do relatório
         st.sidebar.subheader("📦 Exportar Relatório")
@@ -142,6 +188,7 @@ if uploaded_file is not None:
             top_produtos.to_excel(writer, sheet_name="Top Produtos")
             if 'custo' in filtered_df.columns:
                 rentaveis.to_excel(writer, sheet_name="Lucratividade")
+                df_mensal.to_excel(writer, sheet_name="Crescimento Mensal")
             vendas_por_dia.to_excel(writer, sheet_name="Sazonalidade")
         buffer.seek(0)
 

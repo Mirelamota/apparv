@@ -6,31 +6,59 @@ import io
 # Primeiro comando do Streamlit: configuração da página
 st.set_page_config(page_title="Relatórios de Vendas", layout="wide")
 
-# Estilos CSS personalizados
+# Estilos CSS personalizados (compatível com modo escuro e telas móveis)
 st.markdown("""
 <style>
     .reportview-container {
-        background-color: #f9f9f9;
+        background-color: #1e1e1e;
+        color: #ffffff;
     }
+
+    .intro-box {
+        background-color: #2d2d2d;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+        text-align: center;
+        color: #ffffff;
+    }
+
+    .intro-box h1 {
+        color: #1ABC9C; /* Turquesa */
+    }
+
+    .intro-box ul {
+        text-align: left;
+        color: #dddddd;
+        list-style: disc inside;
+        margin-left: -10px;
+    }
+
     .kpi-box {
         padding: 20px;
         border-radius: 10px;
-        color: white;
         font-size: 20px;
         font-weight: bold;
         text-align: center;
         margin: 10px;
+        color: white;
     }
-    .kpi-faturamento { background-color: #7FB3D5; } /* Azul Pastel */
+    .kpi-faturamento { background-color: #7FB3D5; } /* Azul Claro */
     .kpi-vendas { background-color: #76448A; } /* Roxo Suave */
-    .kpi-ticket { background-color: #F4D03F; } /* Amarelo Claro */
+    .kpi-ticket { background-color: #F4B400; } /* Laranja */
 
-    .intro-box {
-        background-color: #ffffff;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        text-align: center;
+    .stTextInput input {
+        color: black !important;
+    }
+
+    .stSelectbox label,
+    .stDateInput label,
+    .stMultiSelect label {
+        color: #ffffff !important;
+    }
+
+    .sidebar .sidebar-content {
+        color: #ffffff;
     }
 
     .plotly-graph-div {
@@ -64,7 +92,7 @@ def gerar_modelo_preenchido():
 def gerar_modelo_vazio():
     return pd.DataFrame(columns=['data_venda', 'produto', 'quantidade', 'valor_total', 'categoria', 'custo (opcional)']).to_csv(index=False, sep=';', decimal=',')
 
-# Tela Inicial com Logo e Descrição
+# Tela Inicial com Logo e Descrição (otimizada para modo escuro)
 def tela_inicial():
     st.markdown("""
     <div class="intro-box">
@@ -220,8 +248,8 @@ if uploaded_file is not None:
                 ).reset_index()
                 df_mensal['mês'] = df_mensal['data_venda'].dt.strftime('%b %Y')
                 df_mensal.to_excel(writer, sheet_name="Crescimento Mensal", index=False)
-
         buffer.seek(0)
+
         st.sidebar.download_button(
             label="⬇️ Baixar Relatório em Excel",
             data=buffer,

@@ -21,9 +21,9 @@ st.markdown("""
         text-align: center;
         margin: 10px;
     }
-    .kpi-faturamento { background-color: #1f77b4; }
-    .kpi-vendas { background-color: #2ca02c; }
-    .kpi-ticket { background-color: #ff7f0e; }
+    .kpi-faturamento { background-color: #7FB3D5; } /* Azul Pastel */
+    .kpi-vendas { background-color: #76448A; } /* Roxo Suave */
+    .kpi-ticket { background-color: #F4D03F; } /* Amarelo Claro */
 
     .intro-box {
         background-color: #ffffff;
@@ -31,6 +31,10 @@ st.markdown("""
         border-radius: 15px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         text-align: center;
+    }
+
+    .plotly-graph-div {
+        width: 100% !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -148,31 +152,32 @@ if uploaded_file is not None:
             top_produtos = filtered_df.groupby('produto')['quantidade'].sum().sort_values(ascending=False).head(10)
             fig = px.bar(top_produtos, x=top_produtos.values, y=top_produtos.index, orientation='h',
                          title="Top 10 Produtos Mais Vendidos",
-                         labels={'x': 'Quantidade Vendida', 'y': 'Produto'})
+                         labels={'x': 'Quantidade Vendida', 'y': 'Produto'},
+                         color_discrete_sequence=['#F4B400'] * len(top_produtos))
             st.plotly_chart(fig, use_container_width=True)
 
         with tab_sazonalidade:
             vendas_por_dia = filtered_df.resample('D', on='data_venda')['valor_total'].sum()
             fig = px.line(vendas_por_dia, x=vendas_por_dia.index, y=vendas_por_dia.values,
-                          title="Vendas ao longo do Tempo", labels={'x': 'Data', 'y': 'Valor Total (R$)'})
+                          title="Vendas ao longo do Tempo",
+                          labels={'x': 'Data', 'y': 'Valor Total (R$)'},
+                          line_shape='spline',
+                          color_discrete_sequence=['#76448A'])
             st.plotly_chart(fig, use_container_width=True)
 
         with tab_lucratividade:
             if 'custo' in filtered_df.columns:
-                # Calcular lucro e margem de lucro
                 filtered_df['lucro'] = filtered_df['valor_total'] - filtered_df['custo']
                 filtered_df['margem_lucro'] = (filtered_df['lucro'] / filtered_df['valor_total']) * 100
                 margens = filtered_df.groupby('produto', as_index=False)['margem_lucro'].mean()
                 margens = margens.sort_values(by='margem_lucro', ascending=False)
 
-                # Gráfico de margem de lucro
                 fig = px.bar(margens.head(10), x='margem_lucro', y='produto', orientation='h',
                              title="📊 Margem de Lucro por Produto",
                              labels={'margem_lucro': 'Margem de Lucro (%)', 'produto': 'Produto'},
-                             range_x=[0, 100])
+                             range_x=[0, 100], color_discrete_sequence=['#1ABC9C'] * len(margens))
                 st.plotly_chart(fig, use_container_width=True)
 
-                # Tabela com detalhes
                 tabela_margem = margens.copy()
                 tabela_margem['margem_lucro'] = tabela_margem['margem_lucro'].round(2)
                 tabela_margem.rename(columns={'margem_lucro': 'Margem de Lucro (%)'}, inplace=True)
@@ -192,7 +197,8 @@ if uploaded_file is not None:
 
                 fig = px.line(df_mensal, x='mês', y=['faturamento', 'lucro'],
                               title="Faturamento e Lucro Mensal",
-                              labels={'value': 'Valor (R$)', 'variable': 'Tipo'})
+                              labels={'value': 'Valor (R$)', 'variable': 'Tipo'},
+                              color_discrete_map={'faturamento': '#E67E22', 'lucro': '#27AE60'})
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("ℹ️ Adicione a coluna 'custo' para visualizar o crescimento mensal.")
@@ -203,11 +209,19 @@ if uploaded_file is not None:
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
             top_produtos = filtered_df.groupby('produto')['quantidade'].sum().sort_values(ascending=False).head(10)
             top_produtos.to_excel(writer, sheet_name="Top Produtos")
-            if 'custo' in filtered_df.columns:
-                margens.to_excel(writer, sheet_name="Margem de Lucro", index=False)
-                df_mensal.to_excel(writer, sheet_name="Crescimento Mensal", index=False)
-        buffer.seek(0)
 
+            if 'custo' in filtered_df.columns:
+                margens = filtered_df.groupby('produto', as_index=False)['margem_lucro'].mean()
+                margens.to_excel(writer, sheet_name="Margem de Lucro", index=False)
+
+                df_mensal = filtered_df.resample('M', on='data_venda').agg(
+                    faturamento=('valor_total', 'sum'),
+                    lucro=('lucro', 'sum')
+                ).reset_index()
+                df_mensal['mês'] = df_mensal['data_venda'].dt.strftime('%b %Y')
+                df_mensal.to_excel(writer, sheet_name="Crescimento Mensal", index=False)
+
+        buffer.seek(0)
         st.sidebar.download_button(
             label="⬇️ Baixar Relatório em Excel",
             data=buffer,

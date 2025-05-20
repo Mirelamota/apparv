@@ -22,15 +22,24 @@ def gerar_modelo_preenchido():
     df_exemplo = pd.DataFrame(dados_exemplo)
     return df_exemplo.to_csv(index=False, sep=';', decimal=',')
 
-# Barra lateral com botão de download do modelo preenchido
-st.sidebar.header("📥 Modelo de Arquivo CSV")
-with st.sidebar.expander("Baixe o modelo preenchido"):
+# Função para gerar modelo CSV vazio com as colunas necessárias
+def gerar_modelo_vazio():
+    modelo_vazio = pd.DataFrame(columns=[
+        'data_venda', 'produto', 'quantidade', 'valor_total', 'categoria', 'custo (opcional)'
+    ])
+    return modelo_vazio.to_csv(index=False, sep=';', decimal=',')
+
+# Barra lateral com modelos para download
+st.sidebar.header("📥 Modelos de Arquivo CSV")
+
+# Modelo preenchido
+with st.sidebar.expander("✅ Baixar Modelo com Dados Fictícios"):
     st.markdown("""
-    Clique no botão abaixo para baixar um **modelo com dados fictícios**.
+    Este modelo já vem com exemplos práticos.
     
-    - É só abrir no Excel ou Google Sheets
-    - Substituir os dados pelos seus
-    - Salvar como `.csv` e carregar aqui no app
+    - Abra no Excel ou Google Sheets
+    - Substitua os dados pelo seus
+    - Salve como `.csv` e carregue aqui no app
     
     📌 Colunas obrigatórias:
     - `data_venda`
@@ -42,11 +51,38 @@ with st.sidebar.expander("Baixe o modelo preenchido"):
     📌 Coluna opcional:
     - `custo` (para análises financeiras)
     """)
-    csv_modelo = gerar_modelo_preenchido()
+    csv_modelo_preenchido = gerar_modelo_preenchido()
     st.download_button(
         label="📥 Baixar Modelo Preenchido",
-        data=csv_modelo,
+        data=csv_modelo_preenchido,
         file_name="modelo_relatorio_vendas_preenchido.csv",
+        mime="text/csv"
+    )
+
+# Modelo vazio
+with st.sidebar.expander("📄 Baixar Modelo Vazio para Preencher"):
+    st.markdown("""
+    Use este modelo se quiser começar do zero.
+    
+    - Baixe o arquivo
+    - Preencha com seus próprios dados
+    - Salve como `.csv` e carregue aqui no app
+    
+    📌 Colunas obrigatórias:
+    - `data_venda`
+    - `produto`
+    - `quantidade`
+    - `valor_total`
+    - `categoria`
+    
+    📌 Coluna opcional:
+    - `custo` (para análises financeiras)
+    """)
+    csv_modelo_vazio = gerar_modelo_vazio()
+    st.download_button(
+        label="📥 Baixar Modelo Vazio",
+        data=csv_modelo_vazio,
+        file_name="modelo_relatorio_vendas_vazio.csv",
         mime="text/csv"
     )
 

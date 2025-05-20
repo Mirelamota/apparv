@@ -12,10 +12,6 @@ st.markdown("""
     .reportview-container {
         background-color: #f9f9f9;
     }
-    .big-font {
-        font-size: 20px !important;
-        font-weight: bold;
-    }
     .kpi-box {
         padding: 20px;
         border-radius: 10px;
@@ -39,25 +35,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Tela Inicial com Logo e Descrição
-def tela_inicial():
-    st.markdown("""
-    <div class="intro-box">
-        <h1>📊 Automatizador de Relatórios de Vendas</h1>
-        <p>Bem-vindo ao seu painel de análise de vendas!</p>
-        <p>Carregue seus dados de vendas e gere relatórios completos em minutos.</p>
-        <ul style="text-align:left;">
-            <li>🔍 Visualize os produtos mais vendidos</li>
-            <li>📅 Veja a sazonalidade das vendas</li>
-            <li>💰 Analise lucratividade e margem de lucro</li>
-            <li>📈 Acompanhe o crescimento mensal</li>
-        </ul>
-        <p>Use os modelos na barra lateral para começar!</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-# Funções para gerar modelos CSV
+# Função para gerar modelo CSV já preenchido com dados fictícios de dois meses
 def gerar_modelo_preenchido():
     dados_exemplo = {
         'data_venda': [
@@ -78,11 +56,27 @@ def gerar_modelo_preenchido():
     }
     return pd.DataFrame(dados_exemplo).to_csv(index=False, sep=';', decimal=',')
 
+# Função para gerar modelo vazio
 def gerar_modelo_vazio():
     return pd.DataFrame(columns=['data_venda', 'produto', 'quantidade', 'valor_total', 'categoria', 'custo (opcional)']).to_csv(index=False, sep=';', decimal=',')
 
-# Página principal
-tela_inicial()
+# Tela Inicial com Logo e Descrição
+def tela_inicial():
+    st.markdown("""
+    <div class="intro-box">
+        <h1>📊 Automatizador de Relatórios de Vendas</h1>
+        <p>Bem-vindo ao seu painel de análise de vendas!</p>
+        <p>Carregue seus dados de vendas e gere relatórios completos em minutos.</p>
+        <ul style="text-align:left;">
+            <li>🔍 Visualize os produtos mais vendidos</li>
+            <li>📅 Veja a sazonalidade das vendas</li>
+            <li>💰 Analise lucratividade e margem de lucro</li>
+            <li>📈 Acompanhe o crescimento mensal</li>
+        </ul>
+        <p>Use os modelos na barra lateral para começar!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
 # Barra lateral - Modelos
 st.sidebar.header("📥 Modelos de Arquivo CSV")
@@ -93,6 +87,9 @@ with st.sidebar.expander("✅ Modelo Preenchido"):
 with st.sidebar.expander("📄 Modelo Vazio"):
     st.markdown("Baixe um modelo vazio para preencher do zero.")
     st.download_button("📥 Baixar Modelo Vazio", gerar_modelo_vazio(), "modelo_vazio.csv", "text/csv")
+
+# Tela inicial
+tela_inicial()
 
 # Upload do arquivo
 uploaded_file = st.file_uploader("📁 Carregue sua planilha de vendas (CSV ou Excel)", type=["csv", "xlsx"])
@@ -131,7 +128,7 @@ if uploaded_file is not None:
 
         # Abas principais
         tab_resumo, tab_produtos, tab_sazonalidade, tab_lucratividade, tab_crescimento = st.tabs([
-            "📊 Resumo", "📦 Produtos", "📅 Sazonalidade", "💰 Lucratividade", "📈 Crescimento"
+            "📊 Resumo", "📦 Produtos", "📅 Sazonalidade", "📊 Margem de Lucro", "📈 Crescimento"
         ])
 
         with tab_resumo:
@@ -140,9 +137,12 @@ if uploaded_file is not None:
             ticket_medio = faturamento_total / num_vendas if num_vendas > 0 else 0
 
             col1, col2, col3 = st.columns(3)
-            col1.markdown(f"<div class='kpi-box kpi-faturamento'>R$ {faturamento_total:.2f}<br>Faturamento Total</div>", unsafe_allow_html=True)
-            col2.markdown(f"<div class='kpi-box kpi-vendas'>{num_vendas}<br>Nº de Vendas</div>", unsafe_allow_html=True)
-            col3.markdown(f"<div class='kpi-box kpi-ticket'>R$ {ticket_medio:.2f}<br>Ticket Médio</div>", unsafe_allow_html=True)
+            col1.markdown(f"<div class='kpi-box kpi-faturamento'>R$ {faturamento_total:.2f}<br>Faturamento Total</div>",
+                          unsafe_allow_html=True)
+            col2.markdown(f"<div class='kpi-box kpi-vendas'>{num_vendas}<br>Nº de Vendas</div>",
+                          unsafe_allow_html=True)
+            col3.markdown(f"<div class='kpi-box kpi-ticket'>R$ {ticket_medio:.2f}<br>Ticket Médio</div>",
+                          unsafe_allow_html=True)
 
         with tab_produtos:
             top_produtos = filtered_df.groupby('produto')['quantidade'].sum().sort_values(ascending=False).head(10)
@@ -157,7 +157,7 @@ if uploaded_file is not None:
                           title="Vendas ao longo do Tempo", labels={'x': 'Data', 'y': 'Valor Total (R$)'})
             st.plotly_chart(fig, use_container_width=True)
 
-                with tab_lucratividade:
+        with tab_lucratividade:
             if 'custo' in filtered_df.columns:
                 # Calcular lucro e margem de lucro
                 filtered_df['lucro'] = filtered_df['valor_total'] - filtered_df['custo']
@@ -201,11 +201,11 @@ if uploaded_file is not None:
         st.sidebar.subheader("📦 Exportar Relatório")
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            top_produtos = filtered_df.groupby('produto')['quantidade'].sum().sort_values(ascending=False).head(10)
             top_produtos.to_excel(writer, sheet_name="Top Produtos")
             if 'custo' in filtered_df.columns:
-                rentaveis.to_excel(writer, sheet_name="Lucratividade")
-                df_mensal.to_excel(writer, sheet_name="Crescimento Mensal")
-            vendas_por_dia.to_excel(writer, sheet_name="Sazonalidade")
+                margens.to_excel(writer, sheet_name="Margem de Lucro", index=False)
+                df_mensal.to_excel(writer, sheet_name="Crescimento Mensal", index=False)
         buffer.seek(0)
 
         st.sidebar.download_button(
